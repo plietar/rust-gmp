@@ -110,6 +110,8 @@ extern "C" {
     fn __gmpz_invert(rop: mpz_ptr, op1: mpz_srcptr, op2: mpz_srcptr) -> c_int;
     fn __gmpz_import(rop: mpz_ptr, count: size_t, order: c_int, size: size_t,
                      endian: c_int, nails: size_t, op: *const c_void);
+    fn __gmpz_export(rop: *mut c_void, countp: *mut size_t, order: c_int, size: size_t,
+                     endian: c_int, nails: size_t, op: mpz_srcptr) -> *mut c_void;
     fn __gmpz_root(rop: mpz_ptr, op: mpz_srcptr, n: c_ulong) -> c_int;
     fn __gmpz_sqrt(rop: mpz_ptr, op: mpz_srcptr);
     fn __gmpz_millerrabin(n: mpz_srcptr, reps: c_int) -> c_int;
@@ -168,6 +170,7 @@ pub struct Mpz {
 }
 
 unsafe impl Send for Mpz { }
+unsafe impl Sync for Mpz { }
 
 impl Drop for Mpz {
     fn drop(&mut self) { unsafe { __gmpz_clear(&mut self.mpz) } }
@@ -187,6 +190,28 @@ impl Mpz {
             let mut mpz = uninitialized();
             __gmpz_init2(&mut mpz, n);
             Mpz { mpz: mpz }
+        }
+    }
+
+    pub fn from_bytes_be(data: &[u8]) -> Mpz {
+        unsafe {
+            let mut res = Mpz::new(); 
+            __gmpz_import(&mut res.mpz, data.len() as u64, 1, 1, 1, 0, data.as_ptr() as *const c_void);
+            res
+        }
+    }
+
+    pub fn to_bytes_be(&self) -> Vec<u8> {
+        unsafe {
+            let size = ((__gmpz_sizeinbase(&self.mpz, 2) + 7) / 8) as usize;
+            let mut ret : Vec<u8> = Vec::with_capacity(size);
+            let mut countp : size_t = 0;
+
+            __gmpz_export(ret.as_mut_ptr() as *mut c_void, &mut countp as *mut size_t, 1, 1, 1, 0, &self.mpz);
+
+            ret.set_len(countp as usize);
+
+            ret
         }
     }
 
