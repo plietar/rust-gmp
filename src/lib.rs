@@ -1,4 +1,5 @@
 #![crate_name = "gmp"]
+#![feature(libc,core,collections)]
 
 #![warn(deprecated)]
 #![allow(non_camel_case_types)]
@@ -222,7 +223,7 @@ impl Mpz {
         unsafe {
             assert!(base == 0 || (base >= 2 && base <= 62));
             let mut mpz = uninitialized();
-            let s = CString::from_slice(s.as_bytes());
+            let s = CString::new(s).unwrap();
             let r = __gmpz_init_set_str(&mut mpz, s.as_ptr(), base as c_int);
             if r == 0 {
                 Some(Mpz { mpz: mpz })
@@ -240,7 +241,7 @@ impl Mpz {
     // TODO: too easy to forget to check this return value - rename?
     pub fn set_from_str_radix(&mut self, s: &str, base: usize) -> bool {
         assert!(base == 0 || (base >= 2 && base <= 62));
-        let s = CString::from_slice(s.as_bytes());
+        let s = CString::new(s).unwrap();
         unsafe { __gmpz_set_str(&mut self.mpz, s.as_ptr(), base as c_int) == 0 }
     }
 
@@ -657,8 +658,13 @@ impl<'a, 'b> Shr<&'a c_ulong> for &'b Mpz {
 }
 
 impl FromStr for Mpz {
-    fn from_str(s: &str) -> Option<Mpz> {
-        Mpz::from_str_radix(s, 10)
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Mpz, ()> {
+        match Mpz::from_str_radix(s, 10) {
+            Some(x) => Ok(x),
+            None => Err(())
+        }
     }
 }
 
@@ -674,10 +680,10 @@ impl fmt::Debug for Mpz {
     }
 }
 
-impl<S: hash::Hasher + hash::Writer> hash::Hash<S> for Mpz {
-    fn hash(&self, state: &mut S) {
+impl hash::Hash for Mpz {
+    fn hash<S: hash::Hasher>(&self, state: &mut S) {
         unsafe {
-            for i in range(0, self.mpz._mp_size) {
+            for i in 0..self.mpz._mp_size {
                 let limb = self.mpz._mp_d as *const mp_limb_t;
                 let limb = *(limb.offset(i as isize));
                 limb.hash(state);
@@ -965,17 +971,18 @@ impl FromPrimitive for Mpq {
 }
 
 
-impl fmt::Show for Mpq {
+impl fmt::Debug for Mpq {
     /// Renders as `numer/denom`. If denom=1, renders as numer.
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let numer = self.get_num();
         let denom = self.get_den();
 
-        if denom == One::one() {
-            write!(f, "{}", numer)
-        } else {
+        //FIXME(paul)
+        //if denom == One::one() {
+        //    write!(f, "{}", numer)
+        //} else {
             write!(f, "{}/{}", numer, denom)
-        }
+        //}
     }
 }
 
