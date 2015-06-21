@@ -1,13 +1,14 @@
 #![crate_name = "gmp"]
-#![feature(libc,core,collections)]
+#![feature(libc,collections)]
 
 #![warn(deprecated)]
 #![allow(non_camel_case_types)]
 
 extern crate libc;
+extern crate num;
 
 use libc::{c_char, c_double, c_int, c_long, c_ulong, c_void, size_t};
-use std::num::{SignedInt, ToPrimitive, FromPrimitive};
+use num::{Signed, ToPrimitive, FromPrimitive};
 use std::mem::{uninitialized,size_of};
 use std::{cmp, fmt, hash};
 use std::cmp::Ordering::{self, Greater, Less, Equal};
