@@ -1,5 +1,5 @@
 #![crate_name = "gmp"]
-#![feature(libc,collections)]
+#![feature(libc,slice_position_elem)]
 
 #![warn(deprecated)]
 #![allow(non_camel_case_types)]
