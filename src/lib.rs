@@ -1,5 +1,5 @@
 #![crate_name = "gmp"]
-#![feature(libc,slice_position_elem)]
+#![feature(libc)]
 
 #![warn(deprecated)]
 #![allow(non_camel_case_types)]
@@ -236,7 +236,7 @@ impl Mpz {
 
             __gmpz_get_str(vector.as_mut_ptr() as *mut _, base as c_int, &self.mpz);
 
-            let first_nul = vector.position_elem(&0).unwrap_or(len);
+            let first_nul = vector.iter().position(|x| *x == 0).unwrap_or(len);
             vector.truncate(first_nul);
             match String::from_utf8(vector) {
                 Ok(s)  => s,
